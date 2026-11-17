@@ -1,125 +1,124 @@
+const chooseImgBtn = document.querySelector(".choose_img button");
+const chooseInput = document.querySelector(".choose_img input");
+const imgSrc = document.querySelector(".view_img img");
+const filterButtons = document.querySelectorAll(".icons_room button");
+const slider = document.querySelector(".slider input");
+const filterName = document.querySelector(".filter_info .name");
+const sliderValue = document.querySelector(".filter_info .value");
+const rotateButtons = document.querySelectorAll(".icons_room1 button");
+const resetBtn = document.querySelector(".reset");
+const saveBtn = document.querySelector(".save");
 
-let choose_img_Btn = document.querySelector(".choose_img button");
-let choose_Input = document.querySelector(".choose_img input");
-let imgSrc = document.querySelector(".view_img img");
-let filter_buttons = document.querySelectorAll(".icons_room button");
-let slider = document.querySelector(".slider input");
-let filter_name = document.querySelector(".filter_info .name");
-let slider_value = document.querySelector(".filter_info .value");
-let rotate_btns = document.querySelectorAll(".icons_room1 button");
-let reset = document.querySelector(".reset");
-let save = document.querySelector(".save");
-let brightness = 100,
-    contrast = 100,
-    saturate = 100,
-    invert = 0,
-    blur = 0,
-    rotate = 0,
-    flip_x = 1,
-    flip_y = 1;
+// Settings for each filter: default value, slider max and display unit
+const FILTERS = {
+  brightness: { value: 100, max: 200, unit: "%" },
+  contrast: { value: 100, max: 200, unit: "%" },
+  saturate: { value: 100, max: 200, unit: "%" },
+  invert: { value: 0, max: 100, unit: "%" },
+  blur: { value: 0, max: 20, unit: "px" },
+};
 
-choose_img_Btn.addEventListener("click", () => choose_Input.click());
-choose_Input.addEventListener("change", () => {
-    let file = choose_Input.files[0];
-    if (!file) return;
-    imgSrc.src = URL.createObjectURL(file);
-    imgSrc.addEventListener("load", () => {
-        document.querySelector(".container").classList.remove("disabled");
-    });
+let values = {};
+let rotate = 0;
+let flipX = 1;
+let flipY = 1;
+
+const resetValues = () => {
+  values = Object.fromEntries(Object.entries(FILTERS).map(([name, f]) => [name, f.value]));
+  rotate = 0;
+  flipX = 1;
+  flipY = 1;
+};
+
+const filterString = () =>
+  `brightness(${values.brightness}%) contrast(${values.contrast}%) saturate(${values.saturate}%) invert(${values.invert}%) blur(${values.blur}px)`;
+
+const activeFilter = () => document.querySelector(".icons_room .active").id;
+
+// Show the active filter's current value on the slider and label
+const syncSlider = () => {
+  const name = activeFilter();
+  slider.max = FILTERS[name].max;
+  slider.value = values[name];
+  filterName.innerText = name;
+  sliderValue.innerText = `${values[name]}${FILTERS[name].unit}`;
+};
+
+const applyEdits = () => {
+  imgSrc.style.filter = filterString();
+  imgSrc.style.transform = `rotate(${rotate}deg) scale(${flipX}, ${flipY})`;
+};
+
+chooseImgBtn.addEventListener("click", () => chooseInput.click());
+
+chooseInput.addEventListener("change", () => {
+  const file = chooseInput.files[0];
+  if (!file) return;
+  imgSrc.addEventListener(
+    "load",
+    () => {
+      document.querySelector(".container").classList.remove("disabled");
+      resetValues();
+      applyEdits();
+      syncSlider();
+    },
+    { once: true }
+  );
+  imgSrc.src = URL.createObjectURL(file);
 });
 
-filter_buttons.forEach((element) => {
-    element.addEventListener("click", () => {
-        document.querySelector(".active").classList.remove("active");
-        element.classList.add("active");
-        filter_name.innerText = element.id;
-        if (element.id === "brightness") {
-            slider.max = "200";
-            slider.value = brightness;// by default value of slider when click
-            slider_value.innerText = `${brightness}`;
-        } else if (element.id === "contrast") {
-            slider.max = "200";
-            slider.value = contrast;
-            slider_value.innerText = `${contrast}`;
-        } else if (element.id === "contrast") {
-            slider.max = "200";
-            slider.value = saturate;
-            slider_value.innerText = `${saturate}`;
-        } else if (element.id === "invert") {
-            slider.max = "100";
-            slider.value = invert;
-            slider_value.innerText = `${invert}`;
-        } else if (element.id === "blur") {
-            slider.max = "100";
-            slider.value = blur;
-            slider_value.innerText = `${blur}`;
-        }
-    });
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelector(".icons_room .active").classList.remove("active");
+    button.classList.add("active");
+    syncSlider();
+  });
 });
 
 slider.addEventListener("input", () => {
-    slider_value.innerText = `${slider.value}%`; // vlalue in %
-    let sliderState = document.querySelector(".icons_room .active");
-    if (sliderState.id === "brightness") {
-        brightness = slider.value;
-    } else if (sliderState.id === "contrast") {
-        contrast = slider.value;
-    } else if (sliderState.id === "saturate") {
-        saturate = slider.value;
-    } else if (sliderState.id === "invert") {
-        invert = slider.value;
-    } else if (sliderState.id === "blur") {
-        blur = slider.value;
-    }
-    imgSrc.style.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) invert(${invert}%) blur(${blur}px)`;
+  const name = activeFilter();
+  values[name] = Number(slider.value);
+  sliderValue.innerText = `${slider.value}${FILTERS[name].unit}`;
+  applyEdits();
 });
 
-rotate_btns.forEach((element) => {
-    element.addEventListener("click", () => {
-        if (element.id === "rotate_left") {
-            rotate -= 90;
-        } else if (element.id === "rotate_right") {
-            rotate += 90;
-        } else if (element.id === "flip_x") {
-            flip_x = flip_x === 1 ? -1 : 1;
-        } else if (element.id === "flip_y") {
-            flip_y = flip_y === 1 ? -1 : 1;
-        }
-
-        imgSrc.style.transform = `rotate(${rotate}deg) scale(${flip_x}, ${flip_y})`;
-    });
+rotateButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.id === "rotate_left") rotate -= 90;
+    else if (button.id === "rotate_right") rotate += 90;
+    else if (button.id === "flip_x") flipX *= -1;
+    else if (button.id === "flip_y") flipY *= -1;
+    applyEdits();
+  });
 });
 
-reset.addEventListener("click", () => {
-    brightness = "100";
-    saturate = "100";
-    contrast = "100";
-    invert = "0";
-    blur = "0";
-    rotate = 0;
-    flip_x = 1;
-    flip_y = 1;
-    imgSrc.style.transform = `rotate(${rotate}deg) scale(${flip_x}, ${flip_y})`;
-    imgSrc.style.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) invert(${invert}%) blur(${blur}px)`;
+resetBtn.addEventListener("click", () => {
+  resetValues();
+  applyEdits();
+  syncSlider();
 });
 
-save.addEventListener("click", () => {
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext("2d");
-    canvas.width = imgSrc.naturalWidth;
-    canvas.height = imgSrc.naturalHeight;
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) invert(${invert}%) blur(${blur}px)`;
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(flip_x, flip_y);
-    ctx.drawImage(
-        imgSrc,
-        -canvas.width / 2,
-        -canvas.height / 2,
-        canvas.width,
-        canvas.height
-    );
-    const link = document.createElement("a");
-    link.download = "image.jpg";
-    link.href = canvas.toDataURL();
-    link.click();
+// Draw the image on a canvas with the same filters, rotation and flips, then download it
+saveBtn.addEventListener("click", () => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const { naturalWidth: w, naturalHeight: h } = imgSrc;
+  const sideways = Math.abs(rotate % 180) === 90;
+
+  canvas.width = sideways ? h : w;
+  canvas.height = sideways ? w : h;
+
+  ctx.filter = filterString();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((rotate * Math.PI) / 180);
+  ctx.scale(flipX, flipY);
+  ctx.drawImage(imgSrc, -w / 2, -h / 2, w, h);
+
+  const link = document.createElement("a");
+  link.download = `edited-image-${Date.now()}.jpg`;
+  link.href = canvas.toDataURL("image/jpeg", 0.95);
+  link.click();
 });
+
+resetValues();
+syncSlider();
